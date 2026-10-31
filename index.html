@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>KC Live</title>
+  <meta name="description" content="Scores de la Karmine Corp en temps réel">
+  <meta name="theme-color" content="#05070f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+  </div>
+
+  <header class="topbar glass">
+    <div class="brand">
+      <span class="logo">KC</span>
+      <div>
+        <h1>KC Live</h1>
+        <p id="updated">Chargement…</p>
+      </div>
+    </div>
+    <button id="notifBtn" class="pill" type="button">🔔 Notifs</button>
+  </header>
+
+  <nav class="chips" id="chips" aria-label="Filtrer par jeu"></nav>
+
+  <main>
+    <section id="liveSection" hidden>
+      <h2><span class="dot"></span> En direct</h2>
+      <div id="live" class="grid"></div>
+    </section>
+
+    <section>
+      <h2>À venir</h2>
+      <div id="upcoming" class="grid"></div>
+    </section>
+
+    <section>
+      <h2>Résultats</h2>
+      <div id="past" class="grid"></div>
+    </section>
+  </main>
+
+  <footer>Application de fan non officielle · Données PandaScore</footer>
+
+  <div id="toast" class="toast glass" role="status" hidden></div>
+  <script src="/app.js"></script>
+</body>
+</html>

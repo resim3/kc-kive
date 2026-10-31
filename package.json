@@ -1,0 +1,6 @@
+{
+  "name": "kc-live",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" }
+}
