@@ -49,6 +49,9 @@ function card(m) {
 
   const leagueImg = m.leagueImg ? `<img src="${esc(m.leagueImg)}" alt="" loading="lazy">` : '';
   const stream = m.stream && !done ? `<a href="${esc(m.stream)}" target="_blank" rel="noopener">Regarder ↗</a>` : '';
+  const hasDetails = live || done;
+  const open = isOpen(m);
+  const toggle = hasDetails ? `<button class="more" type="button" data-toggle="${m.id}" aria-expanded="${open}">${open ? 'Masquer' : 'Scoreboard'} ${open ? '▴' : '▾'}</button>` : '';
   return `
     <article class="card glass ${live ? 'live' : ''}">
       <div class="meta">
@@ -56,7 +59,8 @@ function card(m) {
         ${tag}
       </div>
       <div class="match">${teamHTML(m.kc)}${center}${teamHTML(m.opp)}</div>
-      <div class="foot"><span>${esc(m.game)}${m.bestOf ? ' · BO' + m.bestOf : ''}</span>${stream}</div>
+      <div class="foot"><span>${esc(m.game)}${m.bestOf ? ' · BO' + m.bestOf : ''}</span><span class="actions">${toggle}${stream}</span></div>
+      ${hasDetails ? `<div class="details" data-details="${m.id}" ${open ? '' : 'hidden'}>${open ? detailHTML(m.id) : ''}</div>` : ''}
     </article>`;
 }
 
@@ -81,6 +85,127 @@ function render() {
   renderList($('upcoming'), data.upcoming, 'Aucun match programmé');
   renderList($('past'), data.past, 'Aucun résultat');
   $('updated').textContent = 'Mis à jour à ' + new Date(data.updatedAt).toLocaleTimeString('fr-FR');
+  refreshDetails();
+}
+
+/* ---------- Scoreboard (compositions + stats par game) ---------- */
+const details = new Map(); // id -> { data, at, loading, error, tab }
+const userOpened = new Set();
+const userClosed = new Set();
+const DETAIL_TTL = 60e3; // actualisation toutes les minutes pendant un match
+
+function isOpen(m) {
+  if (userClosed.has(m.id)) return false;
+  return userOpened.has(m.id) || m.status === 'running'; // ouvert d'office pendant le direct
+}
+
+function findMatch(id) {
+  return data && [...data.running, ...data.past].find((m) => m.id === id);
+}
+
+async function fetchDetail(id) {
+  const d = details.get(id) || {};
+  if (d.loading) return;
+  d.loading = true; details.set(id, d);
+  try {
+    const r = await fetch('/api/match?id=' + id, { cache: 'no-store' });
+    const json = await r.json();
+    if (!r.ok) throw new Error(json.error || r.status);
+    d.data = json; d.error = null;
+  } catch (e) {
+    d.error = e.message;
+  }
+  d.at = Date.now(); d.loading = false;
+  paintDetail(id);
+}
+
+function refreshDetails() {
+  if (!data) return;
+  for (const m of [...data.running, ...data.past]) {
+    if (!isOpen(m)) continue;
+    const d = details.get(m.id);
+    const stale = !d || (!d.data && !d.loading) || (m.status === 'running' && Date.now() - (d.at || 0) >= DETAIL_TTL - 1000);
+    if (stale) fetchDetail(m.id);
+  }
+}
+
+function paintDetail(id) {
+  const el = document.querySelector(`[data-details="${id}"]`);
+  if (el && !el.hidden) el.innerHTML = detailHTML(id);
+}
+
+const fmtGold = (g) => (g == null ? '–' : g >= 1000 ? (g / 1000).toFixed(1) + 'k' : String(g));
+const val = (v) => (v == null ? '–' : v);
+const fmtClock = (s) => (s == null ? '' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`);
+const ROLE_FR = { top: 'Top', jun: 'Jungle', jungle: 'Jungle', mid: 'Mid', adc: 'ADC', bot: 'ADC', sup: 'Support', support: 'Support' };
+
+function pickedGame(d) {
+  const games = d.data.games || [];
+  if (d.tab != null && games[d.tab]) return d.tab;
+  let i = games.findIndex((g) => g.status === 'running');
+  if (i < 0) i = games.map((g) => g.stats === 'ok' || g.status === 'finished').lastIndexOf(true);
+  return Math.max(0, i);
+}
+
+function teamBoard(team, info, label) {
+  const logo = info?.img ? `<img src="${esc(info.img)}" alt="" loading="lazy">` : '';
+  const rows = team.players.map((p) => `
+    <div class="row">
+      ${p.pick?.img ? `<img class="pick" src="${esc(p.pick.img)}" alt="" title="${esc(p.pick.name)}" loading="lazy">` : '<span class="pick ph"></span>'}
+      <div class="who"><b>${esc(p.name)}</b><small>${esc(p.pick?.name || ROLE_FR[String(p.role).toLowerCase()] || p.role || '')}${p.level != null ? ' · niv. ' + p.level : ''}</small></div>
+      <span class="kda"><b>${val(p.k)}</b>/<b class="d">${val(p.d)}</b>/<b>${val(p.a)}</b></span>
+      <span class="num">${val(p.cs)}<small>CS</small></span>
+      <span class="num gold">${fmtGold(p.gold)}<small>or</small></span>
+    </div>`).join('');
+  const extra = [team.towers != null ? `🏰 ${team.towers}` : '', team.gold != null ? `💰 ${fmtGold(team.gold)}` : ''].filter(Boolean).join(' · ');
+  return `
+    <div class="board ${label}">
+      <div class="bhead">${logo}<b>${esc(info?.acronym || '?')}</b><span class="k">${val(team.kills)}<small> kills</small></span>${extra ? `<span class="x">${extra}</span>` : ''}</div>
+      ${rows}
+    </div>`;
+}
+
+function rosterHTML(info) {
+  const list = (info?.roster || []).map((p) => `
+    <li>${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : '<span class="ph"></span>'}
+      <div><b>${esc(p.name)}</b><small>${esc(ROLE_FR[String(p.role).toLowerCase()] || p.role || p.realName || '')}</small></div></li>`).join('');
+  return `<div class="roster"><h4>${esc(info?.acronym || '?')}</h4><ul>${list || '<li class="none">Composition inconnue</li>'}</ul></div>`;
+}
+
+function detailHTML(id) {
+  const d = details.get(id);
+  if (!d || (!d.data && !d.error)) return '<div class="dloading">Chargement du scoreboard…</div>';
+  if (!d.data) return `<div class="derror">Scoreboard indisponible : ${esc(d.error)}</div>`;
+  const md = d.data;
+  const games = md.games || [];
+  const gi = pickedGame(d);
+  const g = games[gi];
+
+  const tabs = games.length > 1 ? `<div class="gtabs">${games.map((x, i) => {
+    const mark = x.status === 'running' ? '<span class="dot"></span>' : x.winner === 'kc' ? '✓' : x.winner === 'opp' ? '✗' : '';
+    return `<button class="gtab ${i === gi ? 'on' : ''} ${x.winner || ''}" data-tab="${id}:${i}" type="button">Game ${x.position}${mark ? ' ' + mark : ''}</button>`;
+  }).join('')}</div>` : '';
+
+  let body;
+  if (g?.teams && (g.teams.kc?.players?.length || g.teams.opp?.players?.length)) {
+    const clock = g.clock != null ? `<span>${g.stats === 'live' ? '⏱ ' : 'Durée '}${fmtClock(g.clock)}</span>` : '';
+    body = `<div class="ghead">${g.stats === 'live' ? '<span class="tag live">LIVE</span>' : ''}${clock}</div>
+      ${teamBoard(g.teams.kc || { players: [] }, md.kc, 'kc')}
+      ${teamBoard(g.teams.opp || { players: [] }, md.opp, 'opp')}`;
+  } else {
+    let note = '';
+    if (g?.stats === 'locked') note = g.status === 'running'
+      ? 'Champions et kills en direct non inclus dans ton offre PandaScore. Voici les compositions.'
+      : 'Stats des joueurs non incluses dans ton offre PandaScore. Voici les compositions.';
+    else if (!g || g.status === 'not_started') note = 'La game n’a pas encore commencé. Compositions :';
+    else note = 'Stats pas encore disponibles pour cette game. Compositions :';
+    body = `<p class="note">${note}</p><div class="rosters">${rosterHTML(md.kc)}${rosterHTML(md.opp)}</div>`;
+  }
+
+  const m = findMatch(id);
+  const upd = d.at ? `Actualisé à ${new Date(d.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}${m?.status === 'running' ? ' · toutes les minutes' : ''}` : '';
+  const err = d.error ? ` · ⚠️ ${esc(d.error)}` : '';
+  return `${tabs}${body}<div class="dfoot">${upd}${err}</div>`;
 }
 
 /* ---------- Détection des changements + notifs ---------- */
@@ -145,6 +270,28 @@ async function load() {
 }
 
 /* ---------- UI ---------- */
+document.querySelector('main').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-toggle]');
+  if (t) {
+    const id = Number(t.dataset.toggle);
+    const m = findMatch(id);
+    if (!m) return;
+    if (isOpen(m)) { userClosed.add(id); userOpened.delete(id); }
+    else { userOpened.add(id); userClosed.delete(id); }
+    render();
+    return;
+  }
+  const tab = e.target.closest('[data-tab]');
+  if (tab) {
+    const [id, i] = tab.dataset.tab.split(':').map(Number);
+    const d = details.get(id);
+    if (d) { d.tab = i; paintDetail(id); }
+  }
+});
+
+// Actualise les scoreboards ouverts toutes les minutes, même entre deux chargements de la liste
+setInterval(() => { if (!document.hidden) refreshDetails(); }, 15e3);
+
 $('chips').addEventListener('click', (e) => {
   const b = e.target.closest('[data-slug]');
   if (!b) return;
