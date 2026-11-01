@@ -52,6 +52,7 @@ function card(m) {
   const hasDetails = live || done;
   const open = isOpen(m);
   const toggle = hasDetails ? `<button class="more" type="button" data-toggle="${m.id}" aria-expanded="${open}">${open ? 'Masquer' : 'Scoreboard'} ${open ? '▴' : '▾'}</button>` : '';
+  const tree = m.gameSlug === 'league-of-legends' && m.beginAt ? `<button class="more" type="button" data-bracket="${m.id}">🏆 Tableau</button>` : '';
   return `
     <article class="card glass ${live ? 'live' : ''}">
       <div class="meta">
@@ -59,7 +60,7 @@ function card(m) {
         ${tag}
       </div>
       <div class="match">${teamHTML(m.kc)}${center}${teamHTML(m.opp)}</div>
-      <div class="foot"><span>${esc(m.game)}${m.bestOf ? ' · BO' + m.bestOf : ''}</span><span class="actions">${toggle}${stream}</span></div>
+      <div class="foot"><span>${esc(m.game)}${m.bestOf ? ' · BO' + m.bestOf : ''}</span><span class="actions">${tree}${toggle}${stream}</span></div>
       ${hasDetails ? `<div class="details" data-details="${m.id}" ${open ? '' : 'hidden'}>${open ? detailHTML(m.id) : ''}</div>` : ''}
     </article>`;
 }
@@ -100,7 +101,7 @@ function isOpen(m) {
 }
 
 function findMatch(id) {
-  return data && [...data.running, ...data.past].find((m) => m.id === id);
+  return data && [...data.running, ...data.upcoming, ...data.past].find((m) => m.id === id);
 }
 
 async function fetchDetail(id) {
@@ -139,28 +140,44 @@ const val = (v) => (v == null ? '–' : v);
 const fmtClock = (s) => (s == null ? '' : `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`);
 const ROLE_FR = { top: 'Top', jun: 'Jungle', jungle: 'Jungle', mid: 'Mid', adc: 'ADC', bot: 'ADC', sup: 'Support', support: 'Support' };
 
+const pct = (x) => (x == null ? '' : Math.round(x * 100) + '%');
+const DRAKE_FR = { infernal: 'Infernal', mountain: 'Montagne', ocean: 'Océan', cloud: 'Nuage', hextech: 'Hextech', chemtech: 'Chimtech', elder: 'Ancestral' };
+const hasStats = (g) => g?.teams && (g.teams.kc?.players?.length || g.teams.opp?.players?.length);
+
+// Onglet affiché : choix de l'utilisateur, sinon la game en direct, sinon le bilan d'un match terminé
 function pickedGame(d) {
   const games = d.data.games || [];
+  const canSum = games.some((g) => g.stats === 'ok');
+  if (d.tab === 'sum' && canSum) return 'sum';
   if (d.tab != null && games[d.tab]) return d.tab;
   let i = games.findIndex((g) => g.status === 'running');
-  if (i < 0) i = games.map((g) => g.stats === 'ok' || g.status === 'finished').lastIndexOf(true);
+  if (i >= 0) return i;
+  if (canSum && d.data.status === 'finished') return 'sum';
+  i = games.map((g) => g.stats === 'ok' || g.status === 'finished').lastIndexOf(true);
   return Math.max(0, i);
 }
 
 function teamBoard(team, info, label) {
   const logo = info?.img ? `<img src="${esc(info.img)}" alt="" loading="lazy">` : '';
-  const rows = team.players.map((p) => `
+  const rows = team.players.map((p) => {
+    const sub = [p.champs || p.pick?.name || ROLE_FR[String(p.role).toLowerCase()] || p.role || '', p.level != null ? 'niv. ' + p.level : '', p.dmg != null ? pct(p.dmg) + ' dégâts' : '', p.kp != null ? pct(p.kp) + ' KP' : ''].filter(Boolean).join(' · ');
+    const items = p.items?.length ? `<div class="items">${p.items.map((src) => `<img src="${esc(src)}" alt="" loading="lazy">`).join('')}</div>` : '';
+    return `
     <div class="row">
       ${p.pick?.img ? `<img class="pick" src="${esc(p.pick.img)}" alt="" title="${esc(p.pick.name)}" loading="lazy">` : '<span class="pick ph"></span>'}
-      <div class="who"><b>${esc(p.name)}</b><small>${esc(p.pick?.name || ROLE_FR[String(p.role).toLowerCase()] || p.role || '')}${p.level != null ? ' · niv. ' + p.level : ''}</small></div>
+      <div class="who"><b>${esc(p.name)}${p.mvp ? ' <span class="mvp">MVP</span>' : ''}</b><small>${esc(sub)}</small></div>
       <span class="kda"><b>${val(p.k)}</b>/<b class="d">${val(p.d)}</b>/<b>${val(p.a)}</b></span>
       <span class="num">${val(p.cs)}<small>CS</small></span>
       <span class="num gold">${fmtGold(p.gold)}<small>or</small></span>
-    </div>`).join('');
-  const extra = [team.towers != null ? `🏰 ${team.towers}` : '', team.gold != null ? `💰 ${fmtGold(team.gold)}` : ''].filter(Boolean).join(' · ');
+      ${items}
+    </div>`;
+  }).join('');
+  const drakes = team.dragons?.length ? `🐉 ${team.dragons.length}` : '';
+  const extra = [team.towers != null ? `🏰 ${team.towers}` : '', team.barons ? `👾 ${team.barons}` : '', drakes, team.gold != null ? `💰 ${fmtGold(team.gold)}` : ''].filter(Boolean).join(' · ');
+  const drakeTitle = team.dragons?.length ? ` title="${esc(team.dragons.map((x) => DRAKE_FR[x] || x).join(', '))}"` : '';
   return `
     <div class="board ${label}">
-      <div class="bhead">${logo}<b>${esc(info?.acronym || '?')}</b><span class="k">${val(team.kills)}<small> kills</small></span>${extra ? `<span class="x">${extra}</span>` : ''}</div>
+      <div class="bhead">${logo}<b>${esc(info?.acronym || '?')}</b><span class="k">${val(team.kills)}<small> kills</small></span>${extra ? `<span class="x"${drakeTitle}>${extra}</span>` : ''}</div>
       ${rows}
     </div>`;
 }
@@ -172,6 +189,54 @@ function rosterHTML(info) {
   return `<div class="roster"><h4>${esc(info?.acronym || '?')}</h4><ul>${list || '<li class="none">Composition inconnue</li>'}</ul></div>`;
 }
 
+// Liens vidéo d'une game : rediff au bon moment (lolesports) + recherche des temps forts
+function videoLinks(md, g) {
+  const links = [];
+  if (g.vod) links.push(`<a href="${esc(g.vod.url)}" target="_blank" rel="noopener">▶ Revoir la game${g.vod.lang && g.vod.lang !== 'FR' ? ' (' + esc(g.vod.lang) + ')' : ''}</a>`);
+  if (g.status === 'finished' && md.kc && md.opp) {
+    const q = `${md.kc.acronym} vs ${md.opp.acronym} game ${g.position} highlights`;
+    links.push(`<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" rel="noopener">✨ Temps forts</a>`);
+  }
+  return links.length ? `<span class="vlinks">${links.join('')}</span>` : '';
+}
+
+// Bilan de la série : totaux par joueur sur toutes les games, MVP = meilleur KDA de l'équipe gagnante
+function summaryHTML(md) {
+  const done = (md.games || []).filter((g) => g.stats === 'ok' && hasStats(g));
+  const agg = (side) => {
+    const map = new Map();
+    for (const g of done) for (const p of g.teams[side]?.players || []) {
+      const a = map.get(p.name) || { name: p.name, role: p.role, k: 0, d: 0, a: 0, cs: 0, gold: 0, picks: [], dmg: [], pick: null };
+      a.k += p.k ?? 0; a.d += p.d ?? 0; a.a += p.a ?? 0; a.cs += p.cs ?? 0; a.gold += p.gold ?? 0;
+      if (p.pick) { a.picks.push(p.pick.name); a.pick = p.pick; }
+      if (p.dmg != null) a.dmg.push(p.dmg);
+      map.set(p.name, a);
+    }
+    const players = [...map.values()].map((a) => ({ ...a, champs: a.picks.join(', '), dmg: a.dmg.length ? a.dmg.reduce((x, y) => x + y, 0) / a.dmg.length : null }));
+    return { players, kills: players.reduce((s, p) => s + p.k, 0) };
+  };
+  const kc = agg('kc'), opp = agg('opp');
+  const kcWins = md.games.filter((g) => g.winner === 'kc').length;
+  const oppWins = md.games.filter((g) => g.winner === 'opp').length;
+  const winner = kcWins > oppWins ? kc : oppWins > kcWins ? opp : null;
+  const kdaOf = (p) => (p.k + p.a) / Math.max(1, p.d);
+  const mvp = winner?.players.reduce((b, p) => (!b || kdaOf(p) > kdaOf(b) ? p : b), null);
+  if (mvp) mvp.mvp = true;
+
+  const list = md.games.filter((g) => g.status === 'finished').map((g) => {
+    const res = g.winner === 'kc' ? '<b class="w">Victoire</b>' : g.winner === 'opp' ? '<b class="l">Défaite</b>' : '<b></b>';
+    const k = hasStats(g) ? `${val(g.teams.kc?.kills)} – ${val(g.teams.opp?.kills)}` : '';
+    return `<li><span>Game ${g.position}</span>${res}<span>${k}</span><span>${g.clock ? fmtClock(g.clock) : ''}</span>${videoLinks(md, g)}</li>`;
+  }).join('');
+  const verdict = md.status === 'finished' ? (kcWins > oppWins ? 'Victoire KC' : 'Défaite KC') : 'Série en cours';
+  return `<div class="summary">
+      <div class="final ${kcWins > oppWins ? 'w' : 'l'}"><span>${esc(verdict)}</span><b>${kcWins} – ${oppWins}</b>${mvp ? `<span>MVP : ${esc(mvp.name)} (${mvp.k}/${mvp.d}/${mvp.a})</span>` : ''}</div>
+      <ul class="glist">${list}</ul>
+    </div>
+    ${teamBoard(kc, md.kc, 'kc')}
+    ${teamBoard(opp, md.opp, 'opp')}`;
+}
+
 function detailHTML(id) {
   const d = details.get(id);
   if (!d || (!d.data && !d.error)) return '<div class="dloading">Chargement du scoreboard…</div>';
@@ -179,33 +244,102 @@ function detailHTML(id) {
   const md = d.data;
   const games = md.games || [];
   const gi = pickedGame(d);
-  const g = games[gi];
+  const g = gi === 'sum' ? null : games[gi];
 
-  const tabs = games.length > 1 ? `<div class="gtabs">${games.map((x, i) => {
+  const sumTab = games.some((x) => x.stats === 'ok') ? `<button class="gtab ${gi === 'sum' ? 'on' : ''}" data-tab="${id}:sum" type="button">Bilan</button>` : '';
+  const tabs = games.length > 1 || sumTab ? `<div class="gtabs">${sumTab}${games.map((x, i) => {
     const mark = x.status === 'running' ? '<span class="dot"></span>' : x.winner === 'kc' ? '✓' : x.winner === 'opp' ? '✗' : '';
     return `<button class="gtab ${i === gi ? 'on' : ''} ${x.winner || ''}" data-tab="${id}:${i}" type="button">Game ${x.position}${mark ? ' ' + mark : ''}</button>`;
   }).join('')}</div>` : '';
 
   let body;
-  if (g?.teams && (g.teams.kc?.players?.length || g.teams.opp?.players?.length)) {
+  if (gi === 'sum') body = summaryHTML(md);
+  else if (hasStats(g)) {
     const clock = g.clock != null ? `<span>${g.stats === 'live' ? '⏱ ' : 'Durée '}${fmtClock(g.clock)}</span>` : '';
-    body = `<div class="ghead">${g.stats === 'live' ? '<span class="tag live">LIVE</span>' : ''}${clock}</div>
+    body = `<div class="ghead">${g.stats === 'live' ? '<span class="tag live">LIVE</span>' : ''}${clock}${videoLinks(md, g)}</div>
       ${teamBoard(g.teams.kc || { players: [] }, md.kc, 'kc')}
       ${teamBoard(g.teams.opp || { players: [] }, md.opp, 'opp')}`;
   } else {
     let note = '';
-    if (g?.stats === 'locked') note = g.status === 'running'
-      ? 'Champions et kills en direct non inclus dans ton offre PandaScore. Voici les compositions.'
-      : 'Stats des joueurs non incluses dans ton offre PandaScore. Voici les compositions.';
+    if (g?.stats === 'locked') note = 'Stats des joueurs non incluses dans ton offre PandaScore. Voici les compositions.';
     else if (!g || g.status === 'not_started') note = 'La game n’a pas encore commencé. Compositions :';
     else note = 'Stats pas encore disponibles pour cette game. Compositions :';
-    body = `<p class="note">${note}</p><div class="rosters">${rosterHTML(md.kc)}${rosterHTML(md.opp)}</div>`;
+    body = `${g ? `<div class="ghead">${videoLinks(md, g)}</div>` : ''}<p class="note">${note}</p><div class="rosters">${rosterHTML(md.kc)}${rosterHTML(md.opp)}</div>`;
   }
 
   const m = findMatch(id);
   const upd = d.at ? `Actualisé à ${new Date(d.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}${m?.status === 'running' ? ' · toutes les minutes' : ''}` : '';
+  const src = md.source === 'lolesports' ? ' · stats lolesports' : '';
   const err = d.error ? ` · ⚠️ ${esc(d.error)}` : '';
-  return `${tabs}${body}<div class="dfoot">${upd}${err}</div>`;
+  return `${tabs}${body}<div class="dfoot">${upd}${src}${err}</div>`;
+}
+
+/* ---------- Tableau du tournoi (LoL, via lolesports) ---------- */
+const brackets = new Map(); // "date|code" -> promesse
+
+function bTeamHTML(t) {
+  const logo = t.img ? `<img src="${esc(t.img)}" alt="" loading="lazy">` : '<span class="ph"></span>';
+  return `<div class="bt ${t.outcome || ''} ${t.kc ? 'kc' : ''}">${logo}<b>${esc(t.code)}</b><span>${t.wins ?? ''}</span></div>`;
+}
+const bMatchHTML = (m) => `<div class="bm ${esc(m.state)}">${m.teams.map(bTeamHTML).join('')}</div>`;
+const ROUND_FR = { 2: 'Demi-finales', 4: 'Quarts', 8: 'Huitièmes' };
+
+// Élimination directe : finale au milieu, les deux moitiés du tableau en miroir.
+// shortcut: suppose l'ordre lolesports tour par tour (quarts, demies, finale) car previousMatchIds est vide ;
+// un tableau qui n'a pas 2^n-1 matchs (double élimination, petite finale) s'affiche en simple liste.
+function knockoutHTML(matches) {
+  let n = (matches.length + 1) / 2;
+  if (!Number.isInteger(Math.log2(n))) return `<div class="blist">${matches.map(bMatchHTML).join('')}</div>`;
+  const rounds = [];
+  for (let i = 0; n >= 1; n /= 2) { rounds.push(matches.slice(i, i + n)); i += n; }
+  const final = rounds.pop()[0];
+  const col = (r, half) => `<div class="bcol"><h5>${ROUND_FR[r.length] || ''}</h5>${half.map(bMatchHTML).join('')}</div>`;
+  const left = rounds.map((r) => col(r, r.slice(0, r.length / 2)));
+  const right = rounds.map((r) => col(r, r.slice(r.length / 2))).reverse();
+  return `<div class="tree">${left.join('')}<div class="bcol final"><h5>Finale</h5>${bMatchHTML(final)}</div>${right.join('')}</div>`;
+}
+
+// Système suisse / poules : bilan victoires-défaites calculé depuis les résultats
+function recordHTML(matches) {
+  const rec = new Map();
+  for (const m of matches) for (const t of m.teams) {
+    if (t.code === 'TBD' || !t.outcome) continue;
+    const r = rec.get(t.code) || { t, w: 0, l: 0 };
+    if (t.outcome === 'win') r.w++; else if (t.outcome === 'loss') r.l++;
+    rec.set(t.code, r);
+  }
+  const rows = [...rec.values()].sort((a, b) => b.w - a.w || a.l - b.l)
+    .map((r) => `<li class="${r.t.kc ? 'kc' : ''}">${r.t.img ? `<img src="${esc(r.t.img)}" alt="" loading="lazy">` : '<span></span>'}<b>${esc(r.t.code)}</b><span>${r.w} – ${r.l}</span></li>`).join('');
+  return `<ul class="records">${rows}</ul>`;
+}
+
+function stageHTML(s) {
+  const body = s.slug === 'knockouts' || s.slug === 'playoffs' ? knockoutHTML(s.matches)
+    : /swiss|group|regular/i.test(s.slug) ? recordHTML(s.matches)
+      : `<div class="blist">${s.matches.map(bMatchHTML).join('')}</div>`;
+  return `<section class="stage"><h4>${esc(s.name)}</h4>${body}</section>`;
+}
+
+async function openBracket(id) {
+  const m = findMatch(id);
+  if (!m) return;
+  $('bracketTitle').textContent = m.league || 'Tableau';
+  $('bracketBody').innerHTML = '<div class="dloading">Chargement du tableau…</div>';
+  $('bracket').showModal();
+  const key = m.beginAt + '|' + (m.kc?.acronym || '');
+  if (!brackets.has(key)) {
+    brackets.set(key, fetch(`/api/bracket?at=${encodeURIComponent(m.beginAt)}&code=${encodeURIComponent(m.kc?.acronym || '')}`)
+      .then(async (r) => { const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); return j; }));
+  }
+  try {
+    const b = await brackets.get(key);
+    $('bracketTitle').textContent = b.league || m.league;
+    // Phase finale en premier : c'est ce qu'on veut voir
+    $('bracketBody').innerHTML = [...b.stages].reverse().map(stageHTML).join('') || '<p class="note">Tableau vide</p>';
+  } catch (e) {
+    brackets.delete(key);
+    $('bracketBody').innerHTML = `<div class="derror">Tableau indisponible : ${esc(e.message)}</div>`;
+  }
 }
 
 /* ---------- Détection des changements + notifs ---------- */
@@ -281,12 +415,19 @@ document.querySelector('main').addEventListener('click', (e) => {
     render();
     return;
   }
+  const b = e.target.closest('[data-bracket]');
+  if (b) { openBracket(Number(b.dataset.bracket)); return; }
   const tab = e.target.closest('[data-tab]');
   if (tab) {
-    const [id, i] = tab.dataset.tab.split(':').map(Number);
-    const d = details.get(id);
-    if (d) { d.tab = i; paintDetail(id); }
+    const [id, i] = tab.dataset.tab.split(':');
+    const d = details.get(Number(id));
+    if (d) { d.tab = i === 'sum' ? 'sum' : Number(i); paintDetail(Number(id)); }
   }
+});
+
+// Fermeture du tableau : bouton ou clic à côté
+$('bracket').addEventListener('click', (e) => {
+  if (e.target.closest('[data-close]') || e.target === $('bracket')) $('bracket').close();
 });
 
 // Actualise les scoreboards ouverts toutes les minutes, même entre deux chargements de la liste

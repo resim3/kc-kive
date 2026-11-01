@@ -199,3 +199,55 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 4
 .roster li b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .roster li small { display: block; font-size: 11px; color: var(--muted); }
 .roster li.none { font-size: 12px; color: var(--muted); }
+
+/* ---------- Scoreboard complet (lolesports) ---------- */
+.items { grid-column: 2 / -1; display: flex; gap: 3px; margin-top: -2px; }
+.items img { width: 20px; height: 20px; border-radius: 5px; }
+.mvp { font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 6px; background: linear-gradient(135deg, var(--blue), var(--cyan)); color: #fff; vertical-align: 1px; }
+.vlinks { margin-left: auto; display: inline-flex; gap: 10px; }
+.vlinks a, .glist a { color: var(--cyan); text-decoration: none; font-weight: 600; white-space: nowrap; }
+.summary .final { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 10px; border-radius: 16px; background: var(--glass-strong); font-size: 13px; }
+.summary .final b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.summary .final.w > span:first-child { color: var(--win); font-weight: 700; }
+.summary .final.l > span:first-child { color: var(--loss); font-weight: 700; }
+.glist { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; font-size: 12px; }
+.glist li { display: grid; grid-template-columns: 56px 64px 54px 40px 1fr; align-items: center; gap: 6px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.glist .w { color: var(--win); }
+.glist .l { color: var(--loss); }
+.glist .vlinks { justify-content: flex-end; }
+@media (max-width: 480px) {
+  .glist li { grid-template-columns: 52px 60px 1fr auto; }
+  .glist li > span:nth-child(4) { display: none; }
+  .glist .vlinks { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* ---------- Tableau du tournoi ---------- */
+.sheet {
+  width: min(1100px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border-radius: var(--radius);
+  color: var(--text); background: var(--bg); overflow: auto;
+}
+.sheet::backdrop { background: rgba(0, 0, 0, .55); backdrop-filter: blur(6px); }
+.shead { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--bg); border-bottom: 1px solid var(--stroke); }
+.shead h3 { margin: 0; font-size: 17px; }
+#bracketBody { padding: 4px 16px 18px; }
+.stage h4 { font-size: 14px; margin: 16px 0 8px; color: var(--muted); }
+.tree { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(118px, 1fr); gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+.bcol { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; }
+.bcol h5 { margin: 0; font-size: 11px; color: var(--muted); text-align: center; font-weight: 600; }
+.bcol.final .bm { border-color: var(--cyan); box-shadow: 0 0 24px rgba(63, 208, 255, .2); }
+.bm { border-radius: 12px; background: var(--glass); border: 1px solid var(--stroke); padding: 4px 6px; }
+.bm.inProgress { border-color: var(--live); }
+.bt { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+.bt + .bt { border-top: 1px solid rgba(255, 255, 255, .06); }
+.bt img, .bt .ph { width: 18px; height: 18px; object-fit: contain; flex: none; }
+.bt span { margin-left: auto; font-weight: 700; }
+.bt.loss { opacity: .45; }
+.bt.win b { color: var(--text); }
+.bt.kc b { color: var(--cyan); }
+.blist { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.records { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.records li { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 10px; background: var(--glass); border: 1px solid var(--stroke); font-size: 13px; font-variant-numeric: tabular-nums; }
+.records li img, .records li > span:first-child { width: 18px; height: 18px; object-fit: contain; }
+.records li > span:last-child { margin-left: auto; color: var(--muted); }
+.records li.kc { border-color: var(--cyan); }
+.records li.kc b { color: var(--cyan); }
