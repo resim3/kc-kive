@@ -15,11 +15,14 @@ export default async function handler(req, res) {
     const [running, upcoming, past] = await Promise.all([
       pd(`/matches/running?${f}&per_page=10`),
       pd(`/matches/upcoming?${f}&sort=begin_at&per_page=15`),
-      pd(`/matches/past?${f}&sort=-begin_at&per_page=15`),
+      // 100 sur 1 an (même coût : 1 requête) : avec 15, les matchs LoL cachaient Valorant et RL, et de vieux matchs annulés s'intercalaient
+      pd(`/matches/past?${f}&sort=-begin_at&per_page=100&range[begin_at]=${new Date(Date.now() - 365 * 86400e3).toISOString()},${new Date().toISOString()}`),
     ]);
     const byDateDesc = (a, b) => String(b.beginAt).localeCompare(String(a.beginAt));
     // PandaScore renvoie de vieux matchs annulés en tête malgré sort=-begin_at : on retrie
-    const pastItems = past.map((m) => normalize(m, ids)).sort(byDateDesc);
+    const perGame = {};
+    const pastItems = past.map((m) => normalize(m, ids)).sort(byDateDesc)
+      .filter((m) => (perGame[m.gameSlug] = (perGame[m.gameSlug] || 0) + 1) <= 10); // 10 derniers par jeu
 
     // MVP : seulement pour les 6 derniers matchs LoL terminés (lolesports, gratuit)
     const withMvp = pastItems.filter((m) => m.status === 'finished' && m.gameSlug === 'league-of-legends').slice(0, 6);

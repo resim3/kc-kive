@@ -94,7 +94,8 @@ function card(m) {
   let center, tag;
   if (live || done) {
     const k = m.kc?.score ?? 0, o = m.opp?.score ?? 0;
-    center = `<div class="score" data-id="${m.id}"><span class="${k > o ? 'lead' : ''}">${k}</span><span class="sep">–</span><span class="${o > k ? 'lead' : ''}">${o}</span></div>`;
+    const day = m.beginAt ? new Date(m.beginAt).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+    center = `<div class="res"><div class="score" data-id="${m.id}"><span class="${k > o ? 'lead' : ''}">${k}</span><span class="sep">–</span><span class="${o > k ? 'lead' : ''}">${o}</span></div><small>${esc(day)}</small></div>`;
   } else {
     const f = fmtDate(m.beginAt);
     center = `<div class="when">${esc(f.main)}<small>${esc(f.sub)}</small></div>`;
