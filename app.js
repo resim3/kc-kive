@@ -452,7 +452,7 @@ async function notify(title, body) {
   toast(title);
   if (!notifOn()) return;
   const reg = await navigator.serviceWorker?.getRegistration();
-  const opts = { body, icon: '/icon.svg', badge: '/icon.svg', tag: title, vibrate: [100, 50, 100] };
+  const opts = { body, icon: '/icon-192.png', badge: '/icon.svg', tag: title, vibrate: [100, 50, 100] };
   if (reg) reg.showNotification(title, opts); else new Notification(title, opts);
 }
 
