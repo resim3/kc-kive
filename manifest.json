@@ -1,6 +1,6 @@
 {
-  "name": "KC Live",
-  "short_name": "KC Live",
+  "name": "Karmine Corp Score",
+  "short_name": "KC Score",
   "description": "Scores de la Karmine Corp en temps réel",
   "start_url": "/",
   "display": "standalone",

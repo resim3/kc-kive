@@ -48,7 +48,7 @@ function card(m) {
   else tag = `<span class="tag">${esc(m.game)}</span>`;
 
   const leagueImg = m.leagueImg ? `<img src="${esc(m.leagueImg)}" alt="" loading="lazy">` : '';
-  const stream = m.stream && !done ? `<a href="${esc(m.stream)}" target="_blank" rel="noopener">Regarder ↗</a>` : '';
+  const stream = m.stream && !done ? `<a class="more" href="${esc(m.stream)}" target="_blank" rel="noopener">📺 Regarder</a>` : '';
   const hasDetails = live || done;
   const open = isOpen(m);
   const toggle = hasDetails ? `<button class="more" type="button" data-toggle="${m.id}" aria-expanded="${open}">${open ? 'Masquer' : 'Scoreboard'} ${open ? '▴' : '▾'}</button>` : '';
@@ -158,26 +158,33 @@ function pickedGame(d) {
 }
 
 function teamBoard(team, info, label) {
-  const logo = info?.img ? `<img src="${esc(info.img)}" alt="" loading="lazy">` : '';
+  const logo = info?.img ? `<span class="chip"><img src="${esc(info.img)}" alt="" loading="lazy"></span>` : '';
+  const stat = (v, unit) => (v == null || v === '' ? '' : `<span><b>${v}</b> ${unit}</span>`);
   const rows = team.players.map((p) => {
-    const sub = [p.champs || p.pick?.name || ROLE_FR[String(p.role).toLowerCase()] || p.role || '', p.level != null ? 'niv. ' + p.level : '', p.dmg != null ? pct(p.dmg) + ' dégâts' : '', p.kp != null ? pct(p.kp) + ' KP' : ''].filter(Boolean).join(' · ');
+    const sub = p.champs || p.pick?.name || ROLE_FR[String(p.role).toLowerCase()] || p.role || '';
+    const kda = p.k != null && p.d != null ? ((p.k + (p.a ?? 0)) / Math.max(1, p.d)).toFixed(1) : null;
+    const stats = [stat(p.cs, 'CS'), stat(p.gold == null ? null : fmtGold(p.gold), 'or'), stat(pct(p.dmg), 'dégâts'), stat(pct(p.kp), 'KP'), p.level != null ? `<span>niv. <b>${p.level}</b></span>` : ''].join('');
     const items = p.items?.length ? `<div class="items">${p.items.map((src) => `<img src="${esc(src)}" alt="" loading="lazy">`).join('')}</div>` : '';
     return `
     <div class="row">
       ${p.pick?.img ? `<img class="pick" src="${esc(p.pick.img)}" alt="" title="${esc(p.pick.name)}" loading="lazy">` : '<span class="pick ph"></span>'}
-      <div class="who"><b>${esc(p.name)}${p.mvp ? ' <span class="mvp">MVP</span>' : ''}</b><small>${esc(sub)}</small></div>
-      <span class="kda"><b>${val(p.k)}</b>/<b class="d">${val(p.d)}</b>/<b>${val(p.a)}</b></span>
-      <span class="num">${val(p.cs)}<small>CS</small></span>
-      <span class="num gold">${fmtGold(p.gold)}<small>or</small></span>
+      <div class="who"><b>${esc(p.name)}${p.mvp ? '<span class="mvp">MVP</span>' : ''}</b><small>${esc(sub)}</small></div>
+      <div class="kda"><span><b>${val(p.k)}</b>/<b class="d">${val(p.d)}</b>/<b>${val(p.a)}</b></span>${kda ? `<small>KDA ${kda}</small>` : ''}</div>
+      ${stats ? `<div class="stats">${stats}</div>` : ''}
       ${items}
     </div>`;
   }).join('');
-  const drakes = team.dragons?.length ? `🐉 ${team.dragons.length}` : '';
-  const extra = [team.towers != null ? `🏰 ${team.towers}` : '', team.barons ? `👾 ${team.barons}` : '', drakes, team.gold != null ? `💰 ${fmtGold(team.gold)}` : ''].filter(Boolean).join(' · ');
   const drakeTitle = team.dragons?.length ? ` title="${esc(team.dragons.map((x) => DRAKE_FR[x] || x).join(', '))}"` : '';
+  const objs = [
+    team.towers != null ? `<span>🏰 ${team.towers} tours</span>` : '',
+    team.barons ? `<span>👾 ${team.barons} nashor</span>` : '',
+    team.dragons?.length ? `<span${drakeTitle}>🐉 ${team.dragons.length} drake${team.dragons.length > 1 ? 's' : ''}</span>` : '',
+    team.gold != null ? `<span>💰 ${fmtGold(team.gold)}</span>` : '',
+  ].join('');
   return `
     <div class="board ${label}">
-      <div class="bhead">${logo}<b>${esc(info?.acronym || '?')}</b><span class="k">${val(team.kills)}<small> kills</small></span>${extra ? `<span class="x"${drakeTitle}>${extra}</span>` : ''}</div>
+      <div class="bhead">${logo}<b>${esc(info?.acronym || '?')}</b><span class="k">${val(team.kills)}<small> kills</small></span></div>
+      ${objs ? `<div class="objs">${objs}</div>` : ''}
       ${rows}
     </div>`;
 }
@@ -192,12 +199,12 @@ function rosterHTML(info) {
 // Liens vidéo d'une game : rediff au bon moment (lolesports) + recherche des temps forts
 function videoLinks(md, g) {
   const links = [];
-  if (g.vod) links.push(`<a href="${esc(g.vod.url)}" target="_blank" rel="noopener">▶ Revoir la game${g.vod.lang && g.vod.lang !== 'FR' ? ' (' + esc(g.vod.lang) + ')' : ''}</a>`);
+  if (g.vod) links.push(`<a class="cap accent" href="${esc(g.vod.url)}" target="_blank" rel="noopener">▶ Revoir${g.vod.lang && g.vod.lang !== 'FR' ? ' (' + esc(g.vod.lang) + ')' : ''}</a>`);
   if (g.status === 'finished' && md.kc && md.opp) {
     const q = `${md.kc.acronym} vs ${md.opp.acronym} game ${g.position} highlights`;
-    links.push(`<a href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" rel="noopener">✨ Temps forts</a>`);
+    links.push(`<a class="cap" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" rel="noopener">✨ Temps forts</a>`);
   }
-  return links.length ? `<span class="vlinks">${links.join('')}</span>` : '';
+  return links.length ? `<div class="vlinks">${links.join('')}</div>` : '';
 }
 
 // Bilan de la série : totaux par joueur sur toutes les games, MVP = meilleur KDA de l'équipe gagnante
@@ -224,14 +231,17 @@ function summaryHTML(md) {
   if (mvp) mvp.mvp = true;
 
   const list = md.games.filter((g) => g.status === 'finished').map((g) => {
-    const res = g.winner === 'kc' ? '<b class="w">Victoire</b>' : g.winner === 'opp' ? '<b class="l">Défaite</b>' : '<b></b>';
-    const k = hasStats(g) ? `${val(g.teams.kc?.kills)} – ${val(g.teams.opp?.kills)}` : '';
-    return `<li><span>Game ${g.position}</span>${res}<span>${k}</span><span>${g.clock ? fmtClock(g.clock) : ''}</span>${videoLinks(md, g)}</li>`;
+    const res = g.winner === 'kc' ? 'Victoire' : g.winner === 'opp' ? 'Défaite' : '';
+    const meta = [hasStats(g) ? `${val(g.teams.kc?.kills)} – ${val(g.teams.opp?.kills)} kills` : '', g.clock ? fmtClock(g.clock) : ''].filter(Boolean).join(' · ');
+    return `<div class="gitem ${g.winner === 'kc' ? 'w' : g.winner === 'opp' ? 'l' : ''}">
+        <div class="gtop"><b>Game ${g.position}</b><span class="res">${res}</span><span class="gmeta">${meta}</span></div>
+        ${videoLinks(md, g)}
+      </div>`;
   }).join('');
-  const verdict = md.status === 'finished' ? (kcWins > oppWins ? 'Victoire KC' : 'Défaite KC') : 'Série en cours';
+  const verdict = md.status === 'finished' ? (kcWins > oppWins ? 'Victoire de la KC' : 'Défaite de la KC') : 'Série en cours';
   return `<div class="summary">
-      <div class="final ${kcWins > oppWins ? 'w' : 'l'}"><span>${esc(verdict)}</span><b>${kcWins} – ${oppWins}</b>${mvp ? `<span>MVP : ${esc(mvp.name)} (${mvp.k}/${mvp.d}/${mvp.a})</span>` : ''}</div>
-      <ul class="glist">${list}</ul>
+      <div class="hero ${kcWins >= oppWins ? 'w' : 'l'}"><span class="verdict">${esc(verdict)}</span><b class="big">${kcWins} – ${oppWins}</b>${mvp ? `<span class="cap">⭐ MVP ${esc(mvp.name)} · ${mvp.k}/${mvp.d}/${mvp.a}</span>` : ''}</div>
+      <div class="glist">${list}</div>
     </div>
     ${teamBoard(kc, md.kc, 'kc')}
     ${teamBoard(opp, md.opp, 'opp')}`;
@@ -442,7 +452,8 @@ $('chips').addEventListener('click', (e) => {
 
 function updateNotifBtn() {
   $('notifBtn').classList.toggle('on', notifOn());
-  $('notifBtn').textContent = notifOn() ? '🔔 Activées' : '🔕 Notifs';
+  $('notifBtn').textContent = notifOn() ? '🔔' : '🔕';
+  $('notifBtn').title = notifOn() ? 'Notifications activées' : 'Activer les notifications';
 }
 
 $('notifBtn').addEventListener('click', async () => {
