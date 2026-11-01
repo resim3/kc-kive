@@ -6,6 +6,8 @@ Suivi en direct de la **Karmine Corp** : matchs, scores, scoreboards complets, r
 
 > Projet de fan, sans but lucratif, sans publicité. Il n'est affilié ni à la Karmine Corp, ni à Riot Games, ni à PandaScore. Les noms d'équipes, logos et données appartiennent à leurs détenteurs respectifs.
 
+**Tu as une idée pour l'appli ?** Un bug, une fonctionnalité, un design à revoir, une source de données à ajouter : ouvre une [issue](https://github.com/resim3/kc-kive/issues) ou propose une modification (pull request). Toutes les propositions sont les bienvenues, même petites.
+
 ---
 
 ## Ce que fait l'appli
