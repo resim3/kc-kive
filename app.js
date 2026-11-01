@@ -6,10 +6,68 @@ let filter = 'all';
 let previous = new Map(); // id -> {status, kc, opp} pour détecter les changements
 let firstLoad = true;
 let timer;
+const seen = new Set(); // cartes déjà affichées : l'animation d'entrée ne rejoue pas à chaque actualisation
 
 const notifOn = () => {
   try { return localStorage.getItem('notif') === '1' && Notification.permission === 'granted'; } catch { return false; }
 };
+
+/* ---------- Réglages (sauvegardés sur cet appareil) ---------- */
+const SETTINGS_DEFAULT = { mode: 'auto', accent: 'kc', size: 'm', motion: 'on', mvp: 'on' };
+const SETTINGS_OPTIONS = {
+  mode: [['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']],
+  accent: [['kc', 'KC'], ['violet', 'Violet'], ['emerald', 'Émeraude'], ['rose', 'Rose']],
+  size: [['s', 'Petit'], ['m', 'Normal'], ['l', 'Grand']],
+  motion: [['on', 'Oui'], ['off', 'Non']],
+  mvp: [['on', 'Oui'], ['off', 'Non']],
+};
+const SETTINGS_LABEL = { mode: 'Thème', accent: 'Couleur', size: 'Taille du texte', motion: 'Animations', mvp: 'MVP sur les cartes' };
+const ACCENT_SWATCH = {
+  kc: 'linear-gradient(120deg,#2a6bff,#3fd4ff,#8b5cff)',
+  violet: 'linear-gradient(120deg,#6a3dff,#b48cff,#ff6ad5)',
+  emerald: 'linear-gradient(120deg,#0fb981,#5ef2c4,#2a8bff)',
+  rose: 'linear-gradient(120deg,#ff375f,#ff8fb1,#ffb36b)',
+};
+
+let settings = { ...SETTINGS_DEFAULT };
+try { settings = { ...SETTINGS_DEFAULT, ...JSON.parse(localStorage.getItem('kc-settings') || '{}') }; } catch {}
+
+function applySettings() {
+  const r = document.documentElement;
+  for (const k of Object.keys(SETTINGS_DEFAULT)) r.dataset[k] = settings[k];
+  if (settings.mode === 'auto') delete r.dataset.mode; // suit le thème du téléphone
+}
+
+function saveSettings() {
+  try { localStorage.setItem('kc-settings', JSON.stringify(settings)); } catch {}
+}
+
+function renderSettings() {
+  $('settingsBody').innerHTML = Object.keys(SETTINGS_OPTIONS).map((k) => `
+    <div class="setting">
+      <div class="slabel">${SETTINGS_LABEL[k]}</div>
+      <div class="seg ${k === 'accent' ? 'swatches' : ''}" role="radiogroup" aria-label="${SETTINGS_LABEL[k]}">
+        ${SETTINGS_OPTIONS[k].map(([v, label]) => `
+          <button type="button" role="radio" aria-checked="${settings[k] === v}" class="${settings[k] === v ? 'on' : ''}" data-set="${k}:${v}">
+            ${k === 'accent' ? `<span class="sw" style="background:${ACCENT_SWATCH[v]}"></span>` : ''}<span>${esc(label)}</span>
+          </button>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+$('settingsBtn').addEventListener('click', () => { renderSettings(); $('settings').showModal(); });
+$('settings').addEventListener('click', (e) => {
+  if (e.target === $('settings') || e.target.closest('[data-close]')) return $('settings').close();
+  if (e.target.closest('[data-reset]')) { settings = { ...SETTINGS_DEFAULT }; }
+  else {
+    const b = e.target.closest('[data-set]');
+    if (!b) return;
+    const [k, v] = b.dataset.set.split(':');
+    settings[k] = v;
+  }
+  saveSettings(); applySettings(); renderSettings();
+});
+applySettings();
 
 /* ---------- Rendu ---------- */
 function teamHTML(t) {
@@ -53,14 +111,21 @@ function card(m) {
   const open = isOpen(m);
   const toggle = hasDetails ? `<button class="more" type="button" data-toggle="${m.id}" aria-expanded="${open}">${open ? 'Masquer' : 'Scoreboard'} ${open ? '▴' : '▾'}</button>` : '';
   const tree = m.gameSlug === 'league-of-legends' && m.beginAt ? `<button class="more" type="button" data-bracket="${m.id}">🏆 Tableau</button>` : '';
+  const recap = done && m.kc && m.opp
+    ? `<a class="cap recap" href="https://www.youtube.com/results?search_query=${encodeURIComponent(`${m.kc.acronym} vs ${m.opp.acronym} ${m.league} highlights`)}" target="_blank" rel="noopener">🎬 Récap</a>`
+    : '';
+  const mvp = done && m.mvp ? `<div class="mvpchip">⭐ MVP ${esc(m.mvp.name)} <small>${m.mvp.k}/${m.mvp.d}/${m.mvp.a}</small></div>` : '';
+  const fresh = !seen.has(m.id);
+  seen.add(m.id);
   return `
-    <article class="card glass ${live ? 'live' : ''}">
+    <article class="card glass ${live ? 'live' : ''} ${fresh ? 'fresh' : ''}">
       <div class="meta">
         <div class="league">${leagueImg}<span>${esc(m.league)} · ${esc(m.serie || m.tournament)}</span></div>
         ${tag}
       </div>
       <div class="match">${teamHTML(m.kc)}${center}${teamHTML(m.opp)}</div>
-      <div class="foot"><span>${esc(m.game)}${m.bestOf ? ' · BO' + m.bestOf : ''}</span><span class="actions">${tree}${toggle}${stream}</span></div>
+      ${mvp}
+      <div class="foot">${recap || `<span class="gameTag">${esc(m.game)}${m.bestOf ? ' · BO' + m.bestOf : ''}</span>`}<span class="actions">${tree}${toggle}${stream}</span></div>
       ${hasDetails ? `<div class="details" data-details="${m.id}" ${open ? '' : 'hidden'}>${open ? detailHTML(m.id) : ''}</div>` : ''}
     </article>`;
 }
@@ -82,6 +147,8 @@ function renderChips() {
 function render() {
   renderChips();
   $('liveSection').hidden = !data.running.length;
+  $('liveCount').hidden = !data.running.length;
+  $('liveCount').querySelector('span').textContent = `${data.running.length} en direct`;
   renderList($('live'), data.running, '');
   renderList($('upcoming'), data.upcoming, 'Aucun match programmé');
   renderList($('past'), data.past, 'Aucun résultat');

@@ -1,6 +1,10 @@
 // Liste des matchs KC (tous jeux) : direct, à venir, résultats. Source : PandaScore.
+// Le MVP des derniers matchs LoL terminés est ajouté pour l'afficher sur la carte, sans clic.
 
 import { token, pd, getTeamIds, normalize } from './_pandascore.js';
+import { mvpOf } from './_match.js';
+
+const MVP_BUDGET_MS = 7000; // au-delà, on répond sans les MVP manquants (ils arrivent au chargement suivant)
 
 export default async function handler(req, res) {
   if (!token()) return res.status(500).json({ error: 'PANDASCORE_TOKEN manquant dans les variables Vercel' });
@@ -14,13 +18,25 @@ export default async function handler(req, res) {
       pd(`/matches/past?${f}&sort=-begin_at&per_page=15`),
     ]);
     const byDateDesc = (a, b) => String(b.beginAt).localeCompare(String(a.beginAt));
+    // PandaScore renvoie de vieux matchs annulés en tête malgré sort=-begin_at : on retrie
+    const pastItems = past.map((m) => normalize(m, ids)).sort(byDateDesc);
+
+    // MVP : seulement pour les 6 derniers matchs LoL terminés (lolesports, gratuit)
+    const withMvp = pastItems.filter((m) => m.status === 'finished' && m.gameSlug === 'league-of-legends').slice(0, 6);
+    let timer;
+    const budget = new Promise((r) => { timer = setTimeout(r, MVP_BUDGET_MS); });
+    await Promise.race([
+      Promise.all(withMvp.map(async (m) => { m.mvp = await mvpOf(m.id); })),
+      budget,
+    ]);
+    clearTimeout(timer);
+
     // Cache CDN Vercel 10 s : protège le quota PandaScore même avec beaucoup de visiteurs
     res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=20');
     res.status(200).json({
       running: running.map((m) => normalize(m, ids)),
       upcoming: upcoming.map((m) => normalize(m, ids)),
-      // PandaScore renvoie de vieux matchs annulés en tête malgré sort=-begin_at : on retrie
-      past: past.map((m) => normalize(m, ids)).sort(byDateDesc),
+      past: pastItems,
       teams: ids.length,
       updatedAt: new Date().toISOString(),
     });

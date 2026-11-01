@@ -11,6 +11,13 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/icon.svg">
+  <script>
+    // Réglages appliqués avant le premier affichage (pas de flash de thème)
+    try {
+      var s = JSON.parse(localStorage.getItem('kc-settings') || '{}'), r = document.documentElement;
+      ['mode', 'accent', 'size', 'motion', 'mvp'].forEach(function (k) { if (s[k] && s[k] !== 'auto') r.dataset[k] = s[k]; });
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -26,7 +33,11 @@
         <p id="updated">Chargement…</p>
       </div>
     </div>
-    <button id="notifBtn" class="pill" type="button" aria-label="Notifications">🔕</button>
+    <div class="hactions">
+      <span id="liveCount" class="livepill" hidden><i class="dot"></i><span></span></span>
+      <button id="settingsBtn" class="icon" type="button" aria-label="Réglages">⚙️</button>
+      <button id="notifBtn" class="icon" type="button" aria-label="Notifications">🔕</button>
+    </div>
   </header>
 
   <nav class="chips" id="chips" aria-label="Filtrer par jeu"></nav>
@@ -53,6 +64,12 @@
   <dialog id="bracket" class="sheet glass" aria-labelledby="bracketTitle">
     <div class="shead"><h3 id="bracketTitle">Tableau</h3><button class="more" type="button" data-close>Fermer ✕</button></div>
     <div id="bracketBody"></div>
+  </dialog>
+
+  <dialog id="settings" class="sheet glass" aria-labelledby="settingsTitle">
+    <div class="shead"><h3 id="settingsTitle">Réglages</h3><button class="more" type="button" data-close>Fermer</button></div>
+    <div id="settingsBody"></div>
+    <div class="sfoot"><button class="more" type="button" data-reset>Réinitialiser</button><p>Enregistrés sur cet appareil.</p></div>
   </dialog>
 
   <div id="toast" class="toast glass" role="status" hidden></div>
