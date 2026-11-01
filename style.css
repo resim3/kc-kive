@@ -420,3 +420,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 4
 .namef { display: grid; gap: 14px; padding: 24px; }
 .namef input { font: inherit; font-size: 16px; padding: 12px 16px; border-radius: 16px; border: 1px solid var(--stroke); background: var(--glass-2); color: var(--text); }
 #nameDlg { width: min(420px, calc(100% - 32px)); }
+
+/* Pixel art du joueur à droite du nom (ordinateur seulement : la barre est trop étroite sur téléphone) */
+#pixel { flex: none; width: 128px; height: 48px; image-rendering: pixelated; }
+@media (max-width: 640px) { #pixel { display: none; } }

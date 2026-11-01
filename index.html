@@ -33,6 +33,7 @@
         <p id="hello" hidden></p>
         <p id="updated">Chargement…</p>
       </div>
+      <canvas id="pixel" width="64" height="24" aria-hidden="true"></canvas>
     </div>
     <div class="hactions">
       <nav class="pages" aria-label="Pages"><a class="cap" href="/saison.html">📊 Saison</a><a class="cap" href="/prochain.html">⏱ Prochain match</a></nav>
@@ -93,6 +94,7 @@
 
   <div id="toast" class="toast glass" role="status" hidden></div>
   <script src="/app.js"></script>
+  <script src="/pixel.js"></script>
   <!-- Vercel Web Analytics (à activer dans le projet Vercel : onglet Analytics → Enable) -->
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };

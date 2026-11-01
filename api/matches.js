@@ -4,6 +4,7 @@
 import { token, pd, getTeamIds, normalize } from './_pandascore.js';
 import { mvpOf } from './_match.js';
 
+let last = null; // dernière réponse réussie (instance chaude) : resservie si PandaScore refuse (429, panne)
 const MVP_BUDGET_MS = 7000; // au-delà, on répond sans les MVP manquants (ils arrivent au chargement suivant)
 
 export default async function handler(req, res) {
@@ -36,14 +37,18 @@ export default async function handler(req, res) {
 
     // Cache CDN Vercel 10 s : protège le quota PandaScore même avec beaucoup de visiteurs
     res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate=20');
-    res.status(200).json({
+    last = {
       running: running.map((m) => normalize(m, ids)),
       upcoming: upcoming.map((m) => normalize(m, ids)),
       past: pastItems,
       teams: ids.length,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    res.status(200).json(last);
   } catch (e) {
+    // Erreur aussi mise en cache 10 s : sinon chaque visiteur relance PandaScore et prolonge le 429
+    res.setHeader('Cache-Control', 's-maxage=10');
+    if (last) return res.status(200).json(last);
     res.status(502).json({ error: e.message });
   }
 }
