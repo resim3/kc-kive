@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "KC Live",
+  "version": "1.0",
+  "description": "Ouvre KC Live (scores de la Karmine Corp) dans une fenêtre d'appli.",
+  "action": { "default_title": "Ouvrir KC Live" },
+  "background": { "service_worker": "background.js" }
+}

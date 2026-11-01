@@ -541,3 +541,18 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
 $('upcoming').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
 updateNotifBtn();
 load();
+
+// Bonjour <nom> : le web ne donne pas le nom de l'appareil, on le demande au 1er lancement
+let asked = false; // une seule demande par ouverture (Échap ou stockage bloqué ne doivent pas boucler)
+function showHello() {
+  let name = ''; try { name = localStorage.getItem('kc-name') || ''; } catch {}
+  $('hello').textContent = 'Bonjour ' + name; $('hello').hidden = !name;
+  if (!name && !asked) { asked = true; $('nameDlg').showModal(); }
+}
+$('nameDlg').addEventListener('close', () => {
+  const v = $('nameInput').value.trim();
+  if (v) try { localStorage.setItem('kc-name', v); } catch {}
+  showHello();
+});
+$('hello').addEventListener('click', () => { $('nameInput').value = $('hello').textContent.slice(8); $('nameDlg').showModal(); });
+showHello();

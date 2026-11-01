@@ -30,10 +30,12 @@
       <img class="logo" src="/icon.svg" alt="" width="46" height="46">
       <div>
         <h1>Karmine Corp <span class="grad">Score</span></h1>
+        <p id="hello" hidden></p>
         <p id="updated">Chargement…</p>
       </div>
     </div>
     <div class="hactions">
+      <nav class="pages" aria-label="Pages"><a class="cap" href="/saison.html">📊 Saison</a><a class="cap" href="/prochain.html">⏱ Prochain match</a></nav>
       <span id="liveCount" class="livepill" hidden><i class="dot"></i><span></span></span>
       <button id="settingsBtn" class="icon" type="button" aria-label="Réglages">⚙️</button>
       <button id="notifBtn" class="icon" type="button" aria-label="Notifications">🔕</button>
@@ -78,6 +80,14 @@
     <div class="shead"><h3 id="settingsTitle">Réglages</h3><button class="more" type="button" data-close>Fermer</button></div>
     <div id="settingsBody"></div>
     <div class="sfoot"><button class="more" type="button" data-reset>Réinitialiser</button><p>Enregistrés sur cet appareil.</p></div>
+  </dialog>
+
+  <dialog id="nameDlg" class="sheet glass" aria-labelledby="nameTitle">
+    <form method="dialog" class="namef">
+      <h3 id="nameTitle">Comment s'appelle cet appareil ?</h3>
+      <input id="nameInput" maxlength="30" placeholder="Ex. iPhone de Sam" required>
+      <button class="cap accent">Valider</button>
+    </form>
   </dialog>
 
   <div id="toast" class="toast glass" role="status" hidden></div>
