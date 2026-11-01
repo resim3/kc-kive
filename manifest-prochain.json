@@ -1,0 +1,11 @@
+{
+  "name": "KC · Prochain match",
+  "short_name": "KC Prochain",
+  "description": "Compte à rebours jusqu'au prochain match de la Karmine Corp",
+  "start_url": "/prochain.html",
+  "scope": "/prochain.html",
+  "display": "standalone",
+  "background_color": "#05070f",
+  "theme_color": "#05070f",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

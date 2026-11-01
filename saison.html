@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Saison · Karmine Corp Score</title>
+  <meta name="description" content="La saison de la Karmine Corp, match après match">
+  <meta name="theme-color" content="#05070f">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+    .stat { border-radius: 22px; padding: 14px 10px; text-align: center; }
+    .stat b { display: block; font-size: 26px; font-weight: 900; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+    .stat span { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .month { font-size: 12px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin: 26px 6px 12px; }
+    .frise { position: relative; padding-left: 26px; }
+    .frise::before { content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(var(--win), var(--stroke), var(--loss)); border-radius: 2px; }
+    .ev { position: relative; margin-bottom: 12px; border-radius: 22px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+    .ev::before { content: ''; position: absolute; left: -23px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; background: var(--loss); box-shadow: 0 0 0 4px var(--bg); }
+    .ev.w::before { background: var(--win); }
+    .ev img { width: 36px; height: 36px; object-fit: contain; padding: 5px; border-radius: 12px; background: var(--chip); flex: none; }
+    .ev .info { min-width: 0; flex: 1; }
+    .ev .info b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ev .info small { font-size: 12px; color: var(--muted); }
+    .ev .score { font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: -.5px; white-space: nowrap; }
+    .ev.w .score { color: var(--win); }
+    .ev.l .score { color: var(--loss); }
+    .flame { font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--glass-2); border: 1px solid var(--stroke); white-space: nowrap; }
+    .nav { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .sheader { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .sheader a { font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+
+  <header class="topbar glass sheader">
+    <div class="brand">
+      <img class="logo" src="/icon.svg" alt="" width="46" height="46">
+      <div><h1>Saison <span class="grad">KC</span></h1><p id="updated">Chargement…</p></div>
+    </div>
+    <a class="icon" href="/" aria-label="Retour à l'accueil">🏠</a>
+  </header>
+
+  <main>
+    <div class="stats" id="stats"></div>
+    <div id="timeline"><div class="skeleton"></div></div>
+    <div class="nav">
+      <a class="cap" href="/">← Matchs</a>
+      <a class="cap" href="/prochain.html">⏱ Prochain match</a>
+    </div>
+  </main>
+
+  <footer>Application de fan non officielle · Données PandaScore</footer>
+
+  <script src="/saison.js"></script>
+</body>
+</html>

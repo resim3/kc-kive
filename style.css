@@ -407,3 +407,4 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 4
   .rosters { grid-template-columns: 1fr; }
 }
 @media (max-width: 400px) { h1 { font-size: 16px; } }
+.nav { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }

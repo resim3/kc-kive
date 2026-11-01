@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Prochain match · KC</title>
+  <meta name="description" content="Compte à rebours jusqu'au prochain match de la Karmine Corp">
+  <meta name="theme-color" content="#05070f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="KC · Prochain">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/manifest-prochain.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    main { min-height: 78vh; display: flex; flex-direction: column; justify-content: center; }
+    .next { text-align: center; }
+    .league { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .vs { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 22px 0 8px; }
+    .vs img, .vs .ph { width: 78px; height: 78px; object-fit: contain; padding: 13px; border-radius: 26px; background: var(--chip); box-shadow: inset 0 1px 0 #fff, 0 10px 26px rgba(0, 0, 0, .3); }
+    .vs .ph { display: grid; place-items: center; color: #0a1022; font-weight: 800; }
+    .vs b { font-size: 15px; display: block; margin-top: 6px; font-weight: 700; }
+    .vs .sep { font-size: 22px; color: var(--muted); font-weight: 300; }
+    .when { font-size: 14px; color: var(--muted); margin-top: 6px; }
+    .count { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 30px 0 10px; }
+    .unit { border-radius: 24px; padding: 16px 6px 12px; }
+    .unit b { display: block; font-size: clamp(30px, 9vw, 48px); font-weight: 900; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .unit span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+    .live { font-size: 28px; font-weight: 900; margin: 30px 0 10px; }
+    .live a { display: inline-block; margin-top: 14px; }
+    .foot2 { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 26px; }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+
+  <header class="topbar glass">
+    <div class="brand">
+      <img class="logo" src="/icon.svg" alt="" width="46" height="46">
+      <div><h1>Prochain <span class="grad">match</span></h1><p id="updated">Chargement…</p></div>
+    </div>
+    <a class="icon" href="/" aria-label="Retour à l'accueil">🏠</a>
+  </header>
+
+  <main>
+    <section class="next" id="next"><div class="skeleton"></div></section>
+  </main>
+
+  <footer>Application de fan non officielle · Données PandaScore</footer>
+
+  <script src="/prochain.js"></script>
+</body>
+</html>
