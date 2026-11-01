@@ -1,5 +1,9 @@
 # Karmine Corp Score (KC Live)
 
+<p align="center">
+  <img src="docs/banner.svg" alt="Karmine Corp Score : matchs, scores et rediffs de la Karmine Corp" width="100%">
+</p>
+
 Suivi en direct de la **Karmine Corp** : matchs, scores, scoreboards complets, rediffs de chaque game et arbre des tournois, dans une interface pensée pour le téléphone (style « verre dépoli » d'iOS), installable comme une appli avec notifications.
 
 **En ligne :** https://kc-live.vercel.app
@@ -7,6 +11,30 @@ Suivi en direct de la **Karmine Corp** : matchs, scores, scoreboards complets, r
 > Projet de fan, sans but lucratif, sans publicité. Il n'est affilié ni à la Karmine Corp, ni à Riot Games, ni à PandaScore. Les noms d'équipes, logos et données appartiennent à leurs détenteurs respectifs.
 
 **Tu as une idée pour l'appli ?** Un bug, une fonctionnalité, un design à revoir, une source de données à ajouter : ouvre une [issue](https://github.com/resim3/kc-kive/issues) ou propose une modification (pull request). Toutes les propositions sont les bienvenues, même petites.
+
+---
+
+## 📲 Mettre l'appli sur ton écran d'accueil
+
+Pas besoin de store : ça s'installe depuis le navigateur, en 10 secondes.
+
+### 🍎 iPhone / iPad (Safari)
+
+1. Ouvre **https://kc-live.vercel.app** dans **Safari** (pas Chrome, ça ne marche pas sur iOS).
+2. Touche le bouton **Partager** ⬆️ (le carré avec la flèche, en bas de l'écran).
+3. Fais défiler et choisis **« Sur l'écran d'accueil »** ➕.
+4. Valide **« Ajouter »**. L'icône KC apparaît sur ton écran, et l'appli s'ouvre en plein écran 🎉
+
+> 🔔 Les notifications ne marchent sur iPhone qu'une fois l'appli ajoutée à l'écran d'accueil, puis ouverte depuis cette icône.
+
+### 🤖 Android (Chrome, Edge, Samsung Internet…)
+
+1. Ouvre **https://kc-live.vercel.app** dans **Chrome**.
+2. Touche les **trois petits points** ⋮ en haut à droite.
+3. Choisis **« Installer l'application »** ou **« Ajouter à l'écran d'accueil »** 📥.
+4. Confirme. L'appli rejoint ton écran d'accueil et ton tiroir d'applis 🚀
+
+> 💡 Si tu ne vois pas l'option, attends quelques secondes que la page finisse de charger, puis rouvre le menu.
 
 ---
 
@@ -122,5 +150,7 @@ Le projet est déployé automatiquement sur Vercel à chaque commande ci-dessus.
 ## Crédits
 
 Fait par un fan, pour les fans de la Karmine Corp. Merci à PandaScore, à lolesports et à Riot Games pour les données.
+
+Pour la KC, pour la communauté, pour les soirées où on crie devant l'écran 💙💜 **#KarmineCorp #KCLive**
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
