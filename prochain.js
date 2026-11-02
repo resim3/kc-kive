@@ -23,7 +23,10 @@ function renderNext(m) {
       <div class="unit"><b id="mi">--</b><span>min</span></div>
       <div class="unit"><b id="s">--</b><span>sec</span></div>
     </div>
-    ${m.stream ? `<a class="cap accent" href="${esc(m.stream)}" target="_blank" rel="noopener">📺 Regarder</a>` : ''}`;
+    <div class="foot2">
+      <a class="cap" href="/api/calendar?id=${m.id}">📅 Ajouter à l’agenda</a>
+      ${m.stream ? `<a class="cap accent" href="${esc(m.stream)}" target="_blank" rel="noopener">📺 Regarder</a>` : ''}
+    </div>`;
 }
 
 function tick() {
