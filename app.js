@@ -3,6 +3,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 
 let data = null;
 let filter = 'all';
+try { filter = localStorage.getItem('kc-filter') || 'all'; } catch {}
 let previous = new Map(); // id -> {status, kc, opp} pour détecter les changements
 let firstLoad = true;
 let timer;
@@ -107,7 +108,11 @@ function card(m) {
   else tag = `<span class="tag">${esc(m.game)}</span>`;
 
   const leagueImg = m.leagueImg ? `<img src="${esc(m.leagueImg)}" alt="" loading="lazy">` : '';
-  const stream = m.stream && !done ? `<a class="more" href="${esc(m.stream)}" target="_blank" rel="noopener">📺 Regarder</a>` : '';
+  // Pas de stream annoncé pendant le direct : le watch party de Kameto diffuse la plupart des matchs KC
+  const stream = m.stream && !done ? `<a class="more" href="${esc(m.stream)}" target="_blank" rel="noopener">📺 Regarder</a>`
+    : live ? `<a class="more" href="${KAMETO}" target="_blank" rel="noopener">📺 Kameto</a>` : '';
+  const agenda = m.status === 'not_started' && m.beginAt ? `<a class="more" href="/api/calendar?id=${m.id}" aria-label="Ajouter à l'agenda">📅 Agenda</a>` : '';
+  const share = (live || done) && m.kc && m.opp ? `<button class="more" type="button" data-share="${m.id}" aria-label="Partager le score">↗</button>` : '';
   const hasDetails = live || done;
   const open = isOpen(m);
   const toggle = hasDetails ? `<button class="more" type="button" data-toggle="${m.id}" aria-expanded="${open}">${open ? 'Masquer' : 'Scoreboard'} ${open ? '▴' : '▾'}</button>` : '';
@@ -126,9 +131,29 @@ function card(m) {
       </div>
       <div class="match">${teamHTML(m.kc)}${center}${teamHTML(m.opp)}</div>
       ${mvp}
-      <div class="foot">${recap || `<span class="gameTag">${esc(m.game)}${m.bestOf ? ' · BO' + m.bestOf : ''}</span>`}<span class="actions">${tree}${toggle}${stream}</span></div>
+      <div class="foot">${recap || `<span class="gameTag">${esc(m.game)}${m.bestOf ? ' · BO' + m.bestOf : ''}</span>`}<span class="actions">${tree}${agenda}${toggle}${stream}${share}</span></div>
       ${hasDetails ? `<div class="details" data-details="${m.id}" ${open ? '' : 'hidden'}>${open ? detailHTML(m.id) : ''}</div>` : ''}
     </article>`;
+}
+
+const KAMETO = 'https://www.twitch.tv/kamet0';
+
+// Texte de partage : « 🏆 KC 3–1 G2 · LEC (League of Legends) »
+function shareText(m) {
+  const score = `${m.kc.acronym} ${m.kc.score ?? 0}–${m.opp.score ?? 0} ${m.opp.acronym}`;
+  const head = m.status === 'running' ? `🔴 En direct : ${score}` : m.kcWon ? `🏆 Victoire ! ${score}` : `${score}`;
+  return `${head} · ${m.league} (${m.game})${m.mvp ? ` · MVP ${m.mvp.name}` : ''}`;
+}
+
+async function shareMatch(m) {
+  const text = shareText(m), url = location.origin + '/';
+  try {
+    if (navigator.share) return await navigator.share({ title: 'Karmine Corp Score', text, url });
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    toast('Score copié, il ne reste qu’à coller');
+  } catch (e) {
+    if (e?.name !== 'AbortError') toast('Partage impossible sur cet appareil');
+  }
 }
 
 function renderList(el, list, emptyMsg) {
@@ -139,6 +164,7 @@ function renderList(el, list, emptyMsg) {
 function renderChips() {
   const games = new Map();
   [...data.running, ...data.upcoming, ...data.past].forEach((m) => m.gameSlug && games.set(m.gameSlug, m.game));
+  if (filter !== 'all' && !games.has(filter)) filter = 'all'; // jeu mémorisé absent de la liste
   const chips = [['all', 'Tous'], ...games];
   $('chips').innerHTML = chips
     .map(([slug, name]) => `<button class="pill ${slug === filter ? 'on' : ''}" data-slug="${esc(slug)}">${esc(name)}</button>`)
@@ -439,7 +465,22 @@ function detectChanges() {
     }
     previous.set(m.id, { status: m.status, kc: m.kc?.score, opp: m.opp?.score });
   }
+  remindSoon();
   firstLoad = false;
+}
+
+// Rappel 15 min avant un match (une seule fois par match, mémorisé sur l'appareil)
+const REMIND_MS = 15 * 60e3;
+function remindSoon() {
+  let done = [];
+  try { done = JSON.parse(localStorage.getItem('kc-reminded') || '[]'); } catch {}
+  for (const m of data.upcoming) {
+    const left = Date.parse(m.beginAt) - Date.now();
+    if (m.status !== 'not_started' || !(left > 0 && left <= REMIND_MS) || done.includes(m.id)) continue;
+    notify(`⏰ KC vs ${m.opp?.acronym ?? '?'} dans ${Math.max(1, Math.round(left / 60e3))} min`, `${m.game} · ${m.league}`);
+    done.push(m.id);
+  }
+  try { localStorage.setItem('kc-reminded', JSON.stringify(done.slice(-50))); } catch {}
 }
 
 function flash(id) {
@@ -493,6 +534,8 @@ document.querySelector('main').addEventListener('click', (e) => {
     render();
     return;
   }
+  const sh = e.target.closest('[data-share]');
+  if (sh) { const m = findMatch(Number(sh.dataset.share)); if (m) shareMatch(m); return; }
   const b = e.target.closest('[data-bracket]');
   if (b) { openBracket(Number(b.dataset.bracket)); return; }
   const tab = e.target.closest('[data-tab]');
@@ -515,6 +558,7 @@ $('chips').addEventListener('click', (e) => {
   const b = e.target.closest('[data-slug]');
   if (!b) return;
   filter = b.dataset.slug;
+  try { localStorage.setItem('kc-filter', filter); } catch {}
   render();
 });
 
@@ -537,6 +581,23 @@ $('notifBtn').addEventListener('click', async () => {
 });
 
 document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+
+/* ---------- Agenda : abonnement au calendrier des matchs ---------- */
+function renderAgenda() {
+  const host = location.host;
+  const https = `${location.origin}/api/calendar`;
+  $('agendaLinks').innerHTML = `
+    <a class="cap accent" href="webcal://${host}/api/calendar">🍎 iPhone / Mac</a>
+    <a class="cap" href="https://calendar.google.com/calendar/render?cid=${encodeURIComponent('webcal://' + host + '/api/calendar')}" target="_blank" rel="noopener">📆 Google Agenda</a>
+    <button class="cap" type="button" data-copy="${esc(https)}">🔗 Copier le lien</button>`;
+}
+$('agendaLinks').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-copy]');
+  if (!b) return;
+  try { await navigator.clipboard.writeText(b.dataset.copy); toast('Lien copié : colle-le dans ton agenda (Outlook, Proton…)'); }
+  catch { prompt('Lien de l’agenda KC :', b.dataset.copy); }
+});
+renderAgenda();
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
 $('upcoming').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';

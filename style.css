@@ -424,3 +424,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 4
 /* Pixel art du joueur à droite du nom (ordinateur seulement : la barre est trop étroite sur téléphone) */
 #pixel { flex: none; width: 128px; height: 48px; image-rendering: pixelated; }
 @media (max-width: 640px) { #pixel { display: none; } }
+
+/* Agenda : boutons d'abonnement */
+.agenda { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.contact + .contact { margin-top: 14px; }

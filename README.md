@@ -50,7 +50,11 @@ Pas besoin de store : ça s'installe depuis le navigateur, en 10 secondes.
 - **Temps forts** : un bouton ouvre une recherche YouTube pour la game (« KC vs MKOI game 1 highlights »).
 - **Arbre du tournoi** (LoL) : phase finale avec la finale au centre, système suisse, barrages. Affiché en feuille du bas sur téléphone, avec les matchs à venir (« TBD ») pour que tu voies où en est le tournoi.
 - **Notifications** (PWA) : début de match, changement de score, victoire ou défaite.
-- **Filtres par jeu** et installation sur l'écran d'accueil (iOS et Android).
+- **Filtres par jeu**, mémorisés sur l'appareil, et installation sur l'écran d'accueil (iOS et Android).
+- **Agenda KC** : abonnement au calendrier de tous les matchs (iPhone/Mac via `webcal://`, Google Agenda, ou lien à coller dans Outlook, Proton…), mis à jour toutes les heures, avec rappel 15 min avant. Bouton « 📅 Agenda » sur chaque match à venir pour l'ajouter seul.
+- **Rappel 15 min avant un match** (notification si activée, sinon bandeau dans l'appli ouverte).
+- **Partager un score** : bouton ↗ sur les matchs en direct et terminés (partage du téléphone, ou copie du texte).
+- **Lien Kameto** pendant un match en direct quand aucun stream officiel n'est annoncé (watch party).
 
 ---
 
@@ -68,6 +72,8 @@ kc-kive/
     ├── matches.js    GET /api/matches  : liste des matchs (PandaScore)
     ├── match.js      GET /api/match?id= : détail d'un match, fusionne les deux sources
     ├── bracket.js    GET /api/bracket  : arbre du tournoi LoL (lolesports)
+    ├── saison.js     GET /api/saison   : bilan et frise de la saison
+    ├── calendar.js   GET /api/calendar : agenda .ics (flux complet, ?game=<slug>, ou ?id=<match>)
     ├── _pandascore.js  Client PandaScore : équipes KC, matchs, stats des games terminées
     └── _lolesports.js  Client lolesports : scoreboard LoL, VOD, arbre, recherche de match
 ```
